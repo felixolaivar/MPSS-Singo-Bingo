@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SINGO BINGO GAME</title>
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+    margin:0;
+    padding:20px;
+    font-family:'Poppins', sans-serif;
+    background:#111;
+    color:white;
+    text-align:center;
+    position:relative;
+    z-index:1;
+
+    background:
+        linear-gradient(rgba(0,0,0,.65), rgba(0,0,0,.65)),
+        url('https://img.magnific.com/free-vector/red-abstract-geometric-shape-with-grid-line-pattern_1409-1890.jpg');
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+}
+
+/* SWITCH */
+.switcher{
+    margin-top:25px;
+    position:relative;
+    z-index:2;
+}
+
+h2{
+    font-size:50px;
+    margin:0;
+    line-height:1;
+}
+
+.switcher button{
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+    margin:0 5px;
+    background:#333;
+    color:white;
+}
+
+.switcher button:hover{
+    background:linear-gradient(45deg,#ff9800,#ff3d00);
+}
+
+/* GAME */
+.game{
+    display:none;
+    position:relative;
+    z-index:2;
+}
+
+.game.active{
+    display:block;
+}
+
+/* BOARD */
+.board{
+    display:grid;
+    grid-template-columns:repeat(5, minmax(0, 1fr));
+    gap:6px;
+    justify-content:center;
+    margin:auto;
+    width:100%;
+    max-width:500px;
+}
+
+.song{
+    aspect-ratio:1/1;
+    border:none;
+    border-radius:10px;
+    background:#242424;
+    color:white;
+    cursor:pointer;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:4px;
+    text-align:center;
+
+    font-size:clamp(10px, 2.5vw, 16px);
+    font-weight:700;
+    line-height:1.1;
+
+    transition:0.25s;
+    word-break:break-word;
+}
+
+.song:hover{
+    background:linear-gradient(45deg,#ff9800,#ff3d00,#ff0066);
+    transform:scale(1.05);
+    color:black;
+}
+
+.song.active{
+    background:#ff0000;
+}
+
+/* PATTERNS */
+.patternsUI{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    margin-bottom:10px;
+}
+
+.patternBox{
+    background:rgba(255,255,255,0.08);
+    padding:8px;
+    border-radius:10px;
+    font-size:8px;
+    width:100px;
+    height:100px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    overflow:hidden;
+}
+
+.patternGrid{
+    display:grid;
+    grid-template-columns:repeat(5,8px);
+    gap:1px;
+    margin-top:5px;
+    justify-content:center;
+}
+
+.pcell{
+    width:8px;
+    height:8px;
+    background:rgba(255,255,255,0.2);
+    border-radius:2px;
+}
+
+.pcell.active{
+    background:red;
+}
+
+.patternBox.win{
+    box-shadow:0 0 15px red;
+    transform:scale(1.05);
+    border:2px solid red;
+}
+
+.winText{
+    margin-top:5px;
+    font-size:12px;
+    color:red;
+    font-weight:bold;
+}
+
+/* POPUP */
+#popup{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size: clamp(80px, 8vw, 180px);
+    font-weight:bold;
+    color:red;
+    opacity:0;
+    transition:0.2s;
+    text-shadow:0 0 15px white;
+    z-index:9999;
+    pointer-events:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+}
+
+#popup.show{
+    opacity:1;
+}
+
+/* CONFETTI */
+canvas{
+    position:fixed;
+    top:0;
+    left:0;
+    pointer-events:none;
+    z-index:0;
+}
+
+/* 📱 MOBILE FIX */
+@media (max-width:600px){
+
+    body{ padding:10px; }
+
+    h2{ font-size:28px; }
+
+    .board{ gap:4px; }
+
+    .song{
+        font-size:10px;
+        padding:2px;
+    }
+
+    .patternBox{
+        width:70px;
+        height:70px;
+        font-size:7px;
+    }
+
+    .patternGrid{
+        grid-template-columns:repeat(5,6px);
+    }
+
+    .pcell{
+        width:6px;
+        height:6px;
+    }
+
+    .switcher button{
+        padding:6px 10px;
+        font-size:12px;
+    }
+
+    #popup{
+        font-size:80px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<h2>MY SUPER SINGO BINGO CARD</h2>
+
+<div id="game1" class="game active">
+    <div class="patternsUI" id="patterns1"></div>
+    <div class="board" id="board1"></div>
+</div>
+
+<div id="game2" class="game">
+    <div class="patternsUI" id="patterns2"></div>
+    <div class="board" id="board2"></div>
+</div>
+
+<div class="switcher">
+    <button onclick="showGame(1)">GAME 1</button>
+    <button onclick="showGame(2)">GAME 2</button>
+</div>
+
+<div id="popup"></div>
+<canvas id="confetti"></canvas>
+
+<script>
+const columns = [
+["2012","Angel","APT","Ask For More","Baby","Basket Case","Beautiful Girls","Buttons","Cebuana","Celebration","Cherry On Top","Come On Over","Dahil Sayo","Dancing Queen","Danza Kuduro"],
+["Doo Bi Doo","DUNGKA!","Espresso","Finesse","Fire","Fireball","Gangnam Style","Gasolina","GENTO","Get Down","Gikumot-Kumot","Girl In the Mirror","Girls Just Want to Have Fun","Give Me Everything","Gugmang Ga Aso-Aso"],
+["Hips Dont Lie","Hot in Herre","Ilongga","Insomnia","I wanna Dance with Somebody","Kikay","Last Friday Night","Like A G6","Live While Where Young","Low","Man I Need","Marikit","Material Girl","Miss Independent","Modelong Charing"],
+["Numb","On The Floor","Oohh Lala Baby","Party Rock Anthem","Prinsipal","Pump It","Raining in Manila","Salamin, Salamin","Sayaw Mga Choy","September","Seven","Shake It Off","Shots","Shout Out to My Ex","Single Ladies"],
+["Sk8er Boi","Solo","Super Bass","Taki Taki","Tala","That's What You Get","Touch","Toxic","Uptown Girl","Waka Waka","Wannabe","We Like to Party!","What is What is Love?","Whine Up","YMCA"]
+];
+
+const patternsA = [
+{name:"POST STAMP", cells:[3,4,8,9]},
+{name:"CURSOR", cells:[0,1,2,5,6,10,12,18,24]},
+{name:"LETTER X", cells:[0,4,6,8,12,16,18,20,24]},
+{name:"CROSS", cells:[2,7,10,11,12,13,14,17,22]},
+{name:"PEACE", cells:[2,7,12,16,17,18,20,22,24]},
+{name:"FULL HOUSE", cells:[...Array(25).keys()]}
+];
+
+const patternsB = [
+{name:"4 CORNERS", cells:[0,4,20,24]},
+{name:"SMALL BOX", cells:[6,7,8,11,12,13,16,17,18]},
+{name:"SEVEN", cells:[0,1,2,3,4,8,12,16,20]},
+{name:"DIAMOND", cells:[2,6,8,10,14,16,18,22]},
+{name:"LETTER I", cells:[0,1,2,3,4,7,12,17,20,21,22,23,24]},
+{name:"FULL HOUSE", cells:[...Array(25).keys()]}
+];
+
+function createGame(boardId, patternId, patterns){
+let active=new Set();
+let triggered=new Set();
+let patternBoxes=[];
+
+function build(){
+    const cols=columns.map(c=>[...c].sort(()=>Math.random()-0.5));
+    let data=[];
+
+    for(let r=0;r<5;r++){
+        for(let c=0;c<5;c++){
+            data.push(cols[c][r]);
+        }
+    }
+
+    const board=document.getElementById(boardId);
+    board.innerHTML="";
+
+    data.forEach((val,i)=>{
+        const btn=document.createElement("button");
+        btn.className="song";
+        btn.textContent=val;
+
+        btn.onclick=()=>{
+            if(active.has(i)){
+                active.delete(i);
+                btn.classList.remove("active");
+            }else{
+                active.add(i);
+                btn.classList.add("active");
+            }
+        };
+
+        board.appendChild(btn);
+    });
+}
+
+function renderPatterns(){
+    const box=document.getElementById(patternId);
+    box.innerHTML="";
+}
+
+build();
+renderPatterns();
+}
+
+function showGame(n){
+document.getElementById("game1").classList.remove("active");
+document.getElementById("game2").classList.remove("active");
+document.getElementById("game"+n).classList.add("active");
+}
+
+createGame("board1","patterns1",patternsA);
+createGame("board2","patterns2",patternsB);
+</script>
+
+</body>
+</html>
